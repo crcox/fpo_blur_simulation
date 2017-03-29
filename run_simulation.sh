@@ -15,8 +15,9 @@ echo "Simulation progress:"
 i=0
 while read coord; do
 	i=$((i+1))
-	p=$(bc <<< "scale = 4; ($i/$nvox)*100")
-	echo -ne "\rvoxel $i ($p%)"
+	p=$(bc <<< "scale = 4; ($i/$nvox)")
+	pct=$(bc <<< "scale = 2; $p*100")
+	echo -ne "\rvoxel $i ($pct%)"
 	echo $coord > $current_coord
 	if [ "$i" -gt "0" ]; then
 		rm -f ${current_vol_point}+tlrc.HEAD

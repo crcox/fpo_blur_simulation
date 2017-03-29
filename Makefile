@@ -1,3 +1,6 @@
+# For usage instructions, along with a list of tasks and their descriptions:
+#    make help
+
 # PARAMETERS
 # N.B. These parameters can be overridden from the commandline when invoking
 # make. For example: make OUTDIR=MySim FWHM=2
@@ -44,13 +47,13 @@ AFNI_RESULTS_PREFIX = $(addprefix $(OUTDIR)/, $(AFNI_RESULTS_BASENAME))
 AFNI_RESULTS = $(addsuffix +tlrc.HEAD, $(AFNI_RESULTS_PREFIX))
 
 # Tasks
-all : results2vol 
-resample : $(TLRC_MASTER_3mm)
-mask : $(AFNI_MASK)
-dump : $(DUMP_MASK)
-simulation : $(RESULTS)
-index_results : $(DUMP_RESULTS)
-results2vol : $(AFNI_RESULTS)
+all : results2vol ##@tasks Run all tasks [default].
+resample : $(TLRC_MASTER_3mm) ##@tasks Resample 1mm TT_N27 to 3mm grid.
+mask : $(AFNI_MASK) ##@tasks Project coordinates onto shared 3mm grid.
+mask2dump : $(DUMP_MASK) ##@tasks Dump unique voxels in shared mask to text.
+simulation : $(RESULTS) ##@tasks Determine masked-blur-volume at each voxel.
+results2dump : $(DUMP_RESULTS) ##@tasks Combine results with coordinates.
+results2vol : $(AFNI_RESULTS) ##@tasks Project results into AFNI volume.
 
 # Rules
 $(TLRC_MASTER_3mm) : $(TLRC_MASTER_1mm)
@@ -67,8 +70,7 @@ $(AFNI_MASK) : $(DUMP_ALLCOORDS) $(TLRC_MASTER_3mm)
 
 $(DUMP_MASK) : $(AFNI_MASK)
 	-rm -f $(DUMP_MASK)
-	#3dmaskdump -mask $(AFNI_MASK) -o $(DUMP_MASK) $(AFNI_MASK)
-	3dmaskdump -mask $(AFNI_MASK) $(AFNI_MASK)|head > $(DUMP_MASK) 
+	3dmaskdump -mask $(AFNI_MASK) -o $(DUMP_MASK) $(AFNI_MASK)
 	
 $(RESULTS) : $(DUMP_MASK) $(TLRC_MASTER_3mm) $(AFNI_MASK)
 	./run_simulation.sh $(DUMP_MASK) $(TLRC_MASTER_3mm) $(AFNI_MASK) $(FWHM) $(RESULTS)
@@ -82,3 +84,30 @@ $(AFNI_RESULTS) : $(DUMP_RESULTS) $(TLRC_MASTER_3mm)
 	-rm -f $(AFNI_RESULTS_PREFIX)+tlrc.BRIK.gz
 	3dUndump -master $(TLRC_MASTER_3mm) -ijk -datum float -prefix $(AFNI_RESULTS_PREFIX) $(DUMP_RESULTS)
 	3drefit -fim $(AFNI_RESULTS)
+
+# Add the following 'help' target to your Makefile
+# And add help text after each target name starting with '##'
+# A category can be added with @category
+
+#COLORS
+GREEN  := $(shell tput -Txterm setaf 2)
+WHITE  := $(shell tput -Txterm setaf 7)
+YELLOW := $(shell tput -Txterm setaf 3)
+RESET  := $(shell tput -Txterm sgr0)
+
+HELP_FUN = \
+	%help; \
+	while(<>) { push @{$$help{$$2 // 'options'}}, [$$1, $$3] if /^([a-zA-Z\-0-9_]+)\s*:.*\#\#(?:@([a-zA-Z\-]+))?\s(.*)$$/ }; \
+	print "usage: make\n"; \
+	print "       make [FWHM=<i> OUTDIR=<d> INDIR=<d>]\n"; \
+	print "       make [task]\n\n"; \
+	for (sort keys %help) { \
+	print "${WHITE}$$_:${RESET}\n"; \
+	for (@{$$help{$$_}}) { \
+	$$sep = " " x (32 - length $$_->[0]); \
+	print "  ${YELLOW}$$_->[0]${RESET}$$sep${GREEN}$$_->[1]${RESET}\n"; \
+	}; \
+	print "\n"; }
+
+help: ##@other Show this help.
+	@perl -e '$(HELP_FUN)' $(MAKEFILE_LIST)
