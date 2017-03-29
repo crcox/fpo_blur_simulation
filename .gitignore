@@ -1,0 +1,10 @@
+*.swp
+results.txt
+TT_N27_3mm+tlrc.BRIK
+TT_N27_3mm+tlrc.HEAD
+unionmask_3mm_blurvol+tlrc.BRIK
+unionmask_3mm_blurvol+tlrc.HEAD
+unionmask_3mm+tlrc.BRIK
+unionmask_3mm+tlrc.HEAD
+unionmask_results.txt
+unionmask_voxel_list.txt
